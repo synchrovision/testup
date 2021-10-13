@@ -6,7 +6,7 @@ foreach($db_conf_keys as $key){
 	$db_conf[$key]=empty($_REQUEST['DB_CONF'][$key])?(constant($key).($key==='DB_NAME'?'_testup':'')):esc_attr($_REQUEST['DB_CONF'][$key]);
 }
 ?>
-<form action="./" method="POST" x-data='{input_db_conf:<?=$_REQUEST['input_db_conf']==1?'true':'false'?>,DB_CONF:<?=json_encode($db_conf,0500)?>}'>
+<form action="./" method="POST" x-data='{input_db_conf:<?=($_REQUEST['input_db_conf']??null)==1?'true':'false'?>,DB_CONF:<?=json_encode($db_conf,0500)?>}'>
 	<div class="tablenav">
 		<label><input class="form-check-input" type="checkbox" name="input_db_conf" value="1" x-model="input_db_conf"><?=__('Define Data Base','testup')?></label>
 	</div>
