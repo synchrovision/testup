@@ -35,6 +35,18 @@ class TESTUP{
 		);
 		file_put_contents($file,$contents);
 	}
+	public static function get_main_dir(){
+		return self::is_testup()?dirname(ABSPATH):rtrim(ABSPATH,'/');
+	}
+	public static function get_testup_dir(){
+		return self::is_testup()?rtrim(ABSPATH,'/'):rtrim(ABSPATH,'/').'/testup';
+	}
+	public static function get_main_consts(){
+		return self::extract_consts(self::get_main_dir().'/wp-config.php');
+	}
+	public static function get_testup_consts(){
+		return self::extract_consts(self::get_testup_dir().'/wp-config.php');
+	}
 	public static function get_db_connection_clause($host,$user,$pass){
 		return sprintf('-h %s -u %s -p%s',str_replace(':',' -P ',esc_sql($host)),esc_sql($user),esc_sql($pass));
 	}
@@ -42,14 +54,14 @@ class TESTUP{
 		if(!self::is_testup()){
 			return self::get_db_connection_clause(DB_HOST,DB_USER,DB_PASSWORD);
 		}
-		$conf=self::extract_consts(ABSPATH.'testup'.'/wp-config.php');
+		$conf=self::extract_consts(dirname(ABSPATH).'/wp-config.php');
 		return self::get_db_connection_clause($conf['DB_HOST'],$conf['DB_USER'],$conf['DB_PASSWORD']);
 	}
 	public static function get_testup_db_connection_clause(){
 		if(self::is_testup()){
 			return self::get_db_connection_clause(DB_HOST,DB_USER,DB_PASSWORD);
 		}
-		$conf=self::extract_consts(dirname(ABSPATH).'/wp-config.php');
+		$conf=self::extract_consts(ABSPATH.'testup'.'/wp-config.php');
 		return self::get_db_connection_clause($conf['DB_HOST'],$conf['DB_USER'],$conf['DB_PASSWORD']);
 	}
 
@@ -81,45 +93,46 @@ class TESTUP{
 	}
 	public static function remove(){
 		self::init();
-		$testup_dir=self::is_testup()?rtrim(ABSPATH,'/'):ABSPATH.'/testup';
+		$testup_dir=self::get_testup_dir();
 		if(!is_dir($testup_dir)){return false;}
-		$testup_dbname=self::is_testup()?DB_NAME:DB_NAME.'_testup';
+		$testup_consts=self::get_testup_consts();
 		$testup_connect=self::get_testup_db_connection_clause();
-		passthru(sprintf("mysql %s -e 'DROP DATABASE `%s`;'",$testup_connect,$testup_dbname));
+		passthru(sprintf("mysql %s -e 'DROP DATABASE `%s`;'",$testup_connect,$testup_consts['DB_NAME']));
 		passthru(sprintf("rm -r -f %s",$testup_dir));
 		self::update_registeration(null);
 		return true;
 	}
 	public static function publish(){
 		self::init();
-		$dir=self::is_testup()?dirname(ABSPATH):rtrim(ABSPATH,'/');
-		$testup_dir=$dir.'/testup';
+		$main_dir=self::get_main_dir();
+		$testup_dir=self::get_testup_dir();
 		if(!is_dir($testup_dir)){return false;}
-		$backup_dir=$dir.'_bu'.wp_date('YmdHi');
-		$dbname=self::is_testup()?substr(DB_NAME,0,-7):DB_NAME;
-		$testup_dbname=$dbname.'_testup';
-		$testup_connect=self::get_testup_db_connection_clause();
+		$backup_dir=$main_dir.'_bu'.wp_date('YmdHi');
+		$main_consts=self::get_main_consts();
 		$main_connect=self::get_main_db_connection_clause();
+		$testup_consts=self::get_testup_consts();
+		$testup_connect=self::get_testup_db_connection_clause();
 		$backup_sql_file='wp-content/backup.sql';
 		$testup_sql_file='wp-content/testup.sql';
-		passthru(sprintf('mysqldump %s %s > %s',$main_connect,$dbname,$backup_sql_file));
-		passthru(sprintf('mysqldump %s %s > %s',$testup_connect,$testup_dbname,$testup_sql_file));
-		passthru(sprintf("mysql %s %s < %s",$main_connect,$dbname,$testup_sql_file));
+		passthru(sprintf('mysqldump %s %s > %s',$main_connect,$main_consts['DB_NAME'],$backup_sql_file));
+		passthru(sprintf('mysqldump %s %s > %s',$testup_connect,$testup_consts['DB_NAME'],$testup_sql_file));
+		passthru(sprintf("mysql %s %s < %s",$main_connect,$main_consts['DB_NAME'],$testup_sql_file));
 		if(file_exists($f=$testup_dir.'/wp-config.php')){
-			self::replace_consts($f,['DB_NAME'=>$dbname]);
+			self::replace_consts($f,$main_consts);
 		}
 		self::update_registeration(null);
-		passthru('mv -f %s %s && mv -f %2$s/testup %1$s',$dir,$backup_dir);
+		passthru(sprintf('mv -f %s %s && mv -f %2$s/testup %1$s',$main_dir,$backup_dir));
 		return true;
 	}
 	public static function rebase($hard=false){
 		self::init();
-		$dbname=self::is_testup()?substr(DB_NAME,0,-7):DB_NAME;
-		$testup_dbname=$dbname.'_testup';
-		$connect=sprintf('-h %s -u %s -p%s',str_replace(':',' -P ',DB_HOST),DB_USER,DB_PASSWORD);
+		$main_consts=self::get_main_consts();
+		$main_connect=self::get_main_db_connection_clause();
+		$testup_consts=self::get_testup_consts();
+		$testup_connect=self::get_testup_db_connection_clause();
 		$tmp_sql_file='wp-content/testup_tmp.sql';
-		passthru(sprintf('mysqldump %s%s %s > %s',$connect,$hard?'':' --insert-ignore -t',$dbname,$tmp_sql_file));
-		passthru(sprintf("mysql %s %s < %s",$connect,$testup_dbname,$tmp_sql_file),$result);
+		passthru(sprintf('mysqldump %s%s %s > %s',$main_connect,$hard?'':' --insert-ignore -t',$main_consts['DB_NAME'],$tmp_sql_file));
+		passthru(sprintf("mysql %s %s < %s",$testup_connect,$testup_consts['DB_NAME'],$tmp_sql_file),$result);
 		return $result==0;
 	}
 	public static function register($ip=null){
@@ -129,13 +142,13 @@ class TESTUP{
 		self::update_registeration(array_diff(self::get_registered(),[$ip??$_SERVER['REMOTE_ADDR']]));
 	}
 	public static function get_registered(){
-		$f=(self::is_testup()?dirname(ABSPATH):ABSPATH).'/.htaccess';
+		$f=self::get_main_dir().'/.htaccess';
 		if(!file_exists($f)){return [];}
 		preg_match_all('/SetEnvIf Remote_Addr "\^(?P<ip>.+?)" TESTUP=yes/',file_get_contents($f),$matches);
 		return array_map(function($ip){return str_replace('\\.','.',$ip);},$matches['ip']);
 	}
 	public static function update_registeration($ips){
-		$f=(self::is_testup()?dirname(ABSPATH):ABSPATH).'/.htaccess';
+		$f=self::get_main_dir().'/.htaccess';
 		$content=file_get_contents($f);
 		$content=preg_replace('/# BEGIN testup(.+)# END testup\n/s','',$content);
 		$code='';
