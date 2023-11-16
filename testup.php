@@ -192,6 +192,7 @@ class TESTUP{
 			}
 		}
 		add_action('wp_dashboard_setup',function(){
+			if(!current_user_can('edit_themes')){return;}
 			wp_add_dashboard_widget('testup','TESTUP',['TESTUP','dashboard_widget_content']);
 		});
 		add_action('admin_notices',function(){
