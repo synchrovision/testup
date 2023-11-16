@@ -3,7 +3,7 @@
 Plugin Name: TESTUP
 Description: Clone site into testup directory and show it only with access from specific IP address. Swap site with it on publish.
 Author: synchro_vision
-Version: 0.0.2-alpha
+Version: 0.0.3-alpha
 GitHub Repository: synchrovision/testup
 */
 add_action('init',function(){
