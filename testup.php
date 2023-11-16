@@ -99,7 +99,7 @@ class TESTUP{
 		$testup_connect=self::get_testup_db_connection_clause();
 		passthru(sprintf("mysql %s -e 'DROP DATABASE `%s`;'",$testup_connect,$testup_consts['DB_NAME']));
 		passthru(sprintf("rm -r -f %s",$testup_dir));
-		self::update_registeration(null);
+		self::update_registration(null);
 		return true;
 	}
 	public static function publish(){
@@ -120,7 +120,7 @@ class TESTUP{
 		if(file_exists($f=$testup_dir.'/wp-config.php')){
 			self::replace_consts($f,$main_consts);
 		}
-		self::update_registeration(null);
+		self::update_registration(null);
 		passthru(sprintf('mv -f %s %s && mv -f %2$s/testup %1$s',$main_dir,$backup_dir));
 		return true;
 	}
@@ -136,10 +136,10 @@ class TESTUP{
 		return $result==0;
 	}
 	public static function register($ip=null){
-		self::update_registeration(array_merge(self::get_registered(),[$ip??$_SERVER['REMOTE_ADDR']]));
+		self::update_registration(array_merge(self::get_registered(),[$ip??$_SERVER['REMOTE_ADDR']]));
 	}
 	public static function deregister($ip=null){
-		self::update_registeration(array_diff(self::get_registered(),[$ip??$_SERVER['REMOTE_ADDR']]));
+		self::update_registration(array_diff(self::get_registered(),[$ip??$_SERVER['REMOTE_ADDR']]));
 	}
 	public static function get_registered(){
 		$f=self::get_main_dir().'/.htaccess';
@@ -147,7 +147,7 @@ class TESTUP{
 		preg_match_all('/SetEnvIf Remote_Addr "\^(?P<ip>.+?)" TESTUP=yes/',file_get_contents($f),$matches);
 		return array_map(function($ip){return str_replace('\\.','.',$ip);},$matches['ip']);
 	}
-	public static function update_registeration($ips){
+	public static function update_registration($ips){
 		$f=self::get_main_dir().'/.htaccess';
 		$content=file_get_contents($f);
 		$content=preg_replace('/# BEGIN testup(.+)# END testup\n/s','',$content);
