@@ -154,6 +154,7 @@ class TESTUP{
 		$code='';
 		if(!empty($ips)){
 			$code="# BEGIN testup\nRewriteEngine on\n";
+			$code.="<Files ~ \"\.sql$\">\nOrder allow,deny\nDeny from all\n</Files>\n";
 			foreach(array_unique($ips) as $ip){
 				$code.="SetEnvIf Remote_Addr \"^".str_replace('.','\\.',$ip)."\" TESTUP=yes\n";
 			}
